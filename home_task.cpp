@@ -1,59 +1,115 @@
 #include <iostream>
 #include <vector>
+#include <queue>
+#include <algorithm>
 
 using namespace std;
 
-bool isValidEdge(int u, int v, vector<bool> inMST)
-{
-    if (u == v)
-        return false;
-    if (inMST[u] == false && inMST[v] == false)
-        return false;
-    else if (inMST[u] == true && inMST[v] == true)
-        return false;
-    return true;
-}
 
-void Prim(vector < vector<int> > cost, int v)
+class Graph
 {
-    vector<bool> inMST(v, false);
-    inMST[0] = true;
+public:
+    vector < vector < vector < int > > > Edges;
+    int Vertecies;
 
-    int edge_count = 0, mincost = 0;
-    while (edge_count < v - 1) {
-        int min = INT_MAX, a = -1, b = -1;
-        for (int i = 0; i < v; i++) {
-            for (int j = 0; j < v; j++) {
-                if (cost[i][j] < min) {
-                    if (isValidEdge(i, j, inMST)) {
-                        min = cost[i][j];
-                        a = i;
-                        b = j;
+    Graph(vector < vector < vector < int > > > input_edges, int v) {
+        Edges = input_edges;
+        Vertecies = input_edges.size();
+    }
+};
+
+
+int find_wrong_index(vector < int > parent, vector < int > dist)
+{
+    int v = parent.size();
+    int wrong_index = -1;
+
+    vector < bool > isChecked(v, false);
+
+    for (int i = 0; i < v; i++) {
+        if (parent[i] != -1) {
+            if (!(isChecked[parent[i]] == true && isChecked[i] == true)) {
+                isChecked[parent[i]] = true;
+                isChecked[i] = true;
+            }
+            else {
+                if (dist[parent[i]] < dist[i]) {
+                    wrong_index = i;
+                }
+                else if (dist[parent[i]] > dist[i]) {
+                    wrong_index = parent[i];
+                }
+                else {
+                    if (parent[i] != parent[i - 1]) {
+                        wrong_index = i;
+                    }
+                    else {
+                        wrong_index = parent[i];
                     }
                 }
             }
         }
-        if (a != -1 && b != -1) {
-            printf("Edge %d:(%d, %d) cost: %d \n",
-                edge_count++, a, b, min);
-            mincost = mincost + min;
-            inMST[b] = inMST[a] = true;
+        else {
+            wrong_index = i;
         }
     }
-    printf("\nMinimum cost= %d \n", mincost);
+
+    return wrong_index;
+}
+
+
+void print(vector < int > parent, vector < int > dist)
+{
+    int v = parent.size();
+    int wrong_index = find_wrong_index(parent, dist);
+    int summary_weight = 0;
+
+    for (int i = 0; i < v; i++) {
+        if (i != wrong_index) {
+            printf("%d - %d, weight is %d\n", parent[i], i, dist[i]);
+            summary_weight += dist[i];
+        }
+    }
+
+    printf("\nSummary weight is %d\n", summary_weight);
+}
+
+
+void Prim(Graph graph)
+{
+    int v = graph.Vertecies;
+
+    priority_queue < pair <int, int> > pq;
+    vector <int> parent(v, -1);
+    vector <int> dist(v, INT_MAX);
+
+    pq.push(make_pair(0, 0));
+
+    while (!pq.empty()) {
+        int u = pq.top().first;
+        pq.pop();
+
+        for (int i = 1; i < graph.Edges[u].size(); i++) {
+            int v = graph.Edges[u][i][0];
+            int w = graph.Edges[u][i][1];
+            if (w < dist[v]) {
+                dist[v] = w;
+                pq.push(make_pair(v, w));
+                parent[v] = u;
+            }
+        }
+    }
+
+    print(parent, dist);
 }
 
 int main()
 {
-    vector < vector<int> > cost = {
-        { INT_MAX, 2, INT_MAX, 6, INT_MAX },
-        { 2, INT_MAX, 3, 8, 5 },
-        { INT_MAX, 3, INT_MAX, INT_MAX, 7 },
-        { 6, 8, INT_MAX, INT_MAX, 9 },
-        { INT_MAX, 5, 7, 9, INT_MAX },
-    };
+    Graph graph({
+        { {0, 0}, {1, 1}, {2, 1} },
+        { {1, 0}, {0, 1}, {2, 1} },
+        { {2, 0}, {0, 1}, {1, 1} }
+        }, 3);
 
-    int v = cost.size();
-
-    Prim(cost, v);
+    Prim(graph);
 }
